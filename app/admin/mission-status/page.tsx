@@ -5,7 +5,6 @@ import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/date";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 function ModelViewer({ url }: { url: string }) {
@@ -43,11 +42,7 @@ function ModelViewer({ url }: { url: string }) {
     dirLight.position.set(5, 10, 7);
     scene.add(dirLight);
 
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
-
     const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader);
 
     loader.load(
       `/api/proxy${url}`,
@@ -81,7 +76,6 @@ function ModelViewer({ url }: { url: string }) {
       controls.dispose();
       renderer.dispose();
       el.removeChild(renderer.domElement);
-      dracoLoader.dispose();
     };
   }, [url]);
 
