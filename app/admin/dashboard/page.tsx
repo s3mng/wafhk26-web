@@ -19,11 +19,11 @@ function DashboardContent() {
     if (!teamId) return;
     try {
       setLoading(true);
-      const [myGroups, teamMembers]: [GroupItem[], TeamMember[]] = await Promise.all([
-        apiFetch("/groups/me"),
+      const [teamGroups, teamMembers]: [GroupItem[], TeamMember[]] = await Promise.all([
+        apiFetch(`/teams/${teamId}/groups`),
         apiFetch(`/teams/${teamId}/members`),
       ]);
-      setGroups(myGroups.filter(g => g.team_id === Number(teamId)));
+      setGroups(teamGroups);
       setMembers(teamMembers);
     } catch {
       alert("데이터를 불러오는데 실패했습니다.");
