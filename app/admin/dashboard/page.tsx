@@ -14,23 +14,46 @@ function DashboardContent() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<Record<number, number>>({});
+  const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
+  const [groupMembers, setGroupMembers] = useState<Record<number, {id:number;username:string;hakbun:number;gender:string}[]>>({});
+  const [loadingGroupMembers, setLoadingGroupMembers] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!teamId) return;
     try {
       setLoading(true);
-      const [teamGroups, teamMembers]: [GroupItem[], TeamMember[]] = await Promise.all([
+      const [teamGroups, teamMembers, lb]: [GroupItem[], TeamMember[], {group_id:number;points:number}[]] = await Promise.all([
         apiFetch(`/teams/${teamId}/groups`),
         apiFetch(`/teams/${teamId}/members`),
+        apiFetch(`/leaderboard/${teamId}`),
       ]);
       setGroups(teamGroups);
       setMembers(teamMembers);
+      const lbMap: Record<number, number> = {};
+      for (const e of lb) lbMap[e.group_id] = e.points;
+      setLeaderboard(lbMap);
     } catch {
       alert("데이터를 불러오는데 실패했습니다.");
     } finally {
       setLoading(false);
     }
   }, [teamId]);
+
+  const toggleGroup = async (groupId: number) => {
+    if (expandedGroup === groupId) { setExpandedGroup(null); return; }
+    setExpandedGroup(groupId);
+    if (groupMembers[groupId]) return;
+    try {
+      setLoadingGroupMembers(true);
+      const members = await apiFetch(`/groups/${groupId}/members`);
+      setGroupMembers(prev => ({ ...prev, [groupId]: members }));
+    } catch {
+      // ignore
+    } finally {
+      setLoadingGroupMembers(false);
+    }
+  };
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -145,13 +168,56 @@ function DashboardContent() {
               <p className="text-sm text-gray-400">아직 생성된 조가 없습니다.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {groups.map((group, index) => (
-                <div key={group.id} className="bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-4 flex items-center justify-center gap-2">
-                  <span className="text-base font-bold text-fuchsia-800">{group.name || `${index + 1}조`}</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#8b5cf6">
-                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                  </svg>
+                <div key={group.id}>
+                  <button
+                    className="w-full bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-4 flex items-center justify-between active:opacity-80"
+                    onClick={() => toggleGroup(group.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#8b5cf6">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                      </svg>
+                      <span className="text-base font-bold text-fuchsia-800">{group.name || `${index + 1}조`}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">{leaderboard[group.id] ?? 0}점</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#9ca3af" className={`transition-transform ${expandedGroup === group.id ? "rotate-180" : ""}`}>
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                      </svg>
+                    </div>
+                  </button>
+                  {expandedGroup === group.id && (
+                    <div className="mt-1 bg-white border border-fuchsia-100 rounded-xl p-4">
+                      {loadingGroupMembers && !groupMembers[group.id] ? (
+                        <div className="flex justify-center py-3">
+                          <svg className="animate-spin h-5 w-5 text-purple-500" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#a855f7" strokeWidth="4"/>
+                            <path className="opacity-75" fill="#a855f7" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                        </div>
+                      ) : !groupMembers[group.id] || groupMembers[group.id].length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-2">조원이 없습니다.</p>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {groupMembers[group.id].map(m => (
+                            <div key={m.id} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#6b7280">
+                                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <span className="text-sm font-semibold text-gray-800">{m.username}</span>
+                                <span className="text-xs text-gray-500 ml-2">{m.hakbun}학번 · {m.gender === "male" ? "남" : "여"}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
