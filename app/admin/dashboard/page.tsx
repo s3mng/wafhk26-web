@@ -16,7 +16,7 @@ function DashboardContent() {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [leaderboard, setLeaderboard] = useState<Record<number, number>>({});
   const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
-  const [groupMembers, setGroupMembers] = useState<Record<number, {id:number;username:string;hakbun:number;gender:string}[]>>({});
+  const [groupMembers, setGroupMembers] = useState<Record<number, {id:number;username:string;hakbun:number}[]>>({});
   const [loadingGroupMembers, setLoadingGroupMembers] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -210,7 +210,7 @@ function DashboardContent() {
                               </div>
                               <div className="flex-1">
                                 <span className="text-sm font-semibold text-gray-800">{m.username}</span>
-                                <span className="text-xs text-gray-500 ml-2">{m.hakbun}학번 · {m.gender === "male" ? "남" : "여"}</span>
+                                <span className="text-xs text-gray-500 ml-2">{m.hakbun}학번</span>
                               </div>
                             </div>
                           ))}
