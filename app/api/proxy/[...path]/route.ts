@@ -37,7 +37,7 @@ async function handler(req: NextRequest) {
     let response = await fetch(targetUrl, {
       method: req.method,
       headers,
-      body,
+      body: body as BodyInit | null,
       redirect: "manual",
     });
 
@@ -49,7 +49,7 @@ async function handler(req: NextRequest) {
         response = await fetch(redirectUrl, {
           method: req.method,
           headers,
-          body,
+          body: body as BodyInit | null,
           redirect: "manual",
         });
       }
