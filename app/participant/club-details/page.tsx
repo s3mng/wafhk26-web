@@ -16,6 +16,8 @@ function ClubDetailsContent() {
   const [leaderboardList, setLeaderboardList] = useState<any[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [groupId, setGroupId] = useState<number | null>(null);
+  const [groupMembers, setGroupMembers] = useState<{id:number;username:string;hakbun:number}[]>([]);
+  const [showMembers, setShowMembers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -33,10 +35,12 @@ function ClubDetailsContent() {
       const gId = myGroup.id;
       setGroupId(gId);
 
-      const [teamMissionsData, leaderboardData] = await Promise.all([
+      const [teamMissionsData, leaderboardData, membersData] = await Promise.all([
         apiFetch(`/teams/${id}/missions`),
         apiFetch(`/leaderboard/${id}`),
+        apiFetch(`/groups/${gId}/members`),
       ]);
+      if (Array.isArray(membersData)) setGroupMembers(membersData);
       setTeamMissions(teamMissionsData);
 
       let groupMissionsData: any[] = [];
@@ -83,6 +87,41 @@ function ClubDetailsContent() {
       ) : (
         <div className="flex-1 flex flex-col">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            {/* My Group Members */}
+            {!loading && groupMembers.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between p-4 active:opacity-80"
+                  onClick={() => setShowMembers(!showMembers)}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#a855f7">
+                      <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                    </svg>
+                    <span className="text-base font-bold text-gray-800">내 조원 [{groupMembers.length}]</span>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9ca3af" className={`transition-transform ${showMembers ? "rotate-180" : ""}`}>
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                  </svg>
+                </button>
+                {showMembers && (
+                  <div className="px-4 pb-4 flex flex-col gap-2">
+                    {groupMembers.map(m => (
+                      <div key={m.id} className="flex items-center gap-3 py-1.5 border-t border-gray-100">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="#6b7280">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                          </svg>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-800">{m.username}</span>
+                        <span className="text-xs text-gray-500">{m.hakbun}학번</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {loading ? (
               <div className="flex-1 flex items-center justify-center py-16">
                 <svg className="animate-spin h-8 w-8 text-purple-500" viewBox="0 0 24 24" fill="none">
