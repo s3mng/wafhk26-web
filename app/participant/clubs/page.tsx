@@ -40,7 +40,7 @@ export default function ClubsPage() {
           </button>
         </div>
         <div className="px-6 mt-4">
-          <p className="text-purple-200 text-sm font-medium mb-1">bobyak • 참여자 모드</p>
+          <p className="text-purple-200 text-sm font-medium mb-1">zomoim • 참여자 모드</p>
           <h1 className="text-white text-2xl font-bold">환영합니다! 👋</h1>
           <p className="text-purple-100 text-sm mt-1.5 opacity-90">내 클럽 미션과 활동을 확인해보세요</p>
         </div>
