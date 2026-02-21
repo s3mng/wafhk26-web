@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const BASE_URL = "https://ctsyftybpwjrscsq.tunnel.elice.io/api";
 
 async function handler(req: NextRequest) {
@@ -18,14 +21,15 @@ async function handler(req: NextRequest) {
   });
 
   // Get body for non-GET requests
-  let body: ArrayBuffer | string | null = null;
+  let body: Uint8Array | null = null;
   if (req.method !== "GET" && req.method !== "HEAD") {
-    const contentType = req.headers.get("content-type") || "";
-    if (contentType.includes("multipart/form-data")) {
-      body = await req.arrayBuffer();
-    } else {
-      body = await req.text();
-    }
+    const buf = await req.arrayBuffer();
+    body = new Uint8Array(buf);
+  }
+
+  // Set content-length for the upstream request
+  if (body) {
+    headers["content-length"] = body.byteLength.toString();
   }
 
   try {
