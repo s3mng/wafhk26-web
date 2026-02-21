@@ -196,7 +196,20 @@ function MissionStatusContent() {
               </div>
             </div>
 
-            {modelUrl && <ModelViewer url={modelUrl} />}
+            {modelUrl && (
+              <>
+                <ModelViewer url={modelUrl} />
+                <a
+                  href={`/api/proxy${modelUrl}`}
+                  download
+                  className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold"
+                  style={{ backgroundColor: "#a855f7" }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                  3D 모델 다운로드
+                </a>
+              </>
+            )}
           </div>
 
           <div className="px-5 py-3 bg-gray-50">
