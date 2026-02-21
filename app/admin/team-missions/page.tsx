@@ -85,6 +85,11 @@ function TeamMissionsContent() {
                 </div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs text-purple-700 bg-purple-100 px-2 py-1 rounded">팀 미션</span>
+                  {item.points ? (
+                    <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                      ⭐ {item.points}점
+                    </span>
+                  ) : null}
                 </div>
                 <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-5">{item.description}</p>
                 <div className="flex items-center gap-1">

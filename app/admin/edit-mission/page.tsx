@@ -12,6 +12,7 @@ function EditMissionContent() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [points, setPoints] = useState("0");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,7 +20,7 @@ function EditMissionContent() {
     if (!isEdit) return;
     setLoading(true);
     apiFetch(`/missions/${missionId}`)
-      .then(d => { setTitle(d.title || ""); setDescription(d.description || ""); })
+      .then(d => { setTitle(d.title || ""); setDescription(d.description || ""); setPoints(d.points?.toString() || "0"); })
       .catch(() => { alert("미션 정보를 불러오지 못했습니다."); router.back(); })
       .finally(() => setLoading(false));
   }, [missionId]);
@@ -29,10 +30,10 @@ function EditMissionContent() {
     try {
       setSubmitting(true);
       if (isEdit) {
-        await apiFetch(`/missions/${missionId}`, { method: "PATCH", body: JSON.stringify({ title: title.trim(), description: description.trim() }) });
+        await apiFetch(`/missions/${missionId}`, { method: "PATCH", body: JSON.stringify({ title: title.trim(), description: description.trim(), points: Number(points) || 0 }) });
         alert("미션이 수정되었습니다."); router.back();
       } else {
-        await apiFetch("/missions/", { method: "POST", body: JSON.stringify({ team_id: Number(teamId), title: title.trim(), description: description.trim() }) });
+        await apiFetch("/missions/", { method: "POST", body: JSON.stringify({ team_id: Number(teamId), title: title.trim(), description: description.trim(), points: Number(points) || 0 }) });
         alert("미션이 추가되었습니다."); router.back();
       }
     } catch {
@@ -100,6 +101,16 @@ function EditMissionContent() {
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={6}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-base font-semibold text-gray-600">배점</label>
+          <input
+            className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-800 placeholder-gray-400 outline-none focus:border-purple-400"
+            placeholder="배점을 입력하세요 (예: 100)"
+            type="number"
+            value={points}
+            onChange={e => setPoints(e.target.value)}
           />
         </div>
       </div>

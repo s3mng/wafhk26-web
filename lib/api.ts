@@ -1,4 +1,23 @@
-const BASE_URL = "https://ctsyftybpwjrscsq.tunnel.elice.io/api";
+// Use Next.js API proxy to avoid CORS issues
+const BASE_URL = "/api/proxy";
+
+export interface GroupItem {
+  id: number;
+  team_id: number;
+  name: string;
+  leader_id: number;
+  created_at: string;
+}
+
+export interface TeamMember {
+  id: number;
+  team_id: number;
+  user_id: number;
+  user_name: string;
+  user_student_id: string;
+  user_hakbun: number;
+  role: string;
+}
 
 let accessToken: string | null = null;
 
