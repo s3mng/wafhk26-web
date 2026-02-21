@@ -63,9 +63,15 @@ function MissionSubmitContent() {
       setProcessing(true);
       const formData = new FormData();
       formData.append("file", previewBlob, `mission_${missionId}_${Date.now()}.jpg`);
-      await apiFetch(`/missions/${missionId}/submit?group_id=${groupId}`, { method: "POST", body: formData });
-      alert("미션이 성공적으로 제출되었습니다.");
-      router.back();
+      const result = await apiFetch(`/missions/${missionId}/submit?group_id=${groupId}`, { method: "POST", body: formData });
+      if (result?.completed) {
+        alert("미션이 성공적으로 제출되었습니다.");
+        router.back();
+      } else {
+        const submitted = result?.details?.submitted_users ?? "?";
+        const total = result?.details?.total_members ?? "?";
+        alert(`사진이 업로드되었습니다.\n아직 완료되지 않았습니다. (${submitted}/${total}명 제출)`);
+      }
     } catch (e: any) {
       alert(`미션 제출 중 문제가 발생했습니다.\n\n${e?.message || ""}`);
     } finally {
