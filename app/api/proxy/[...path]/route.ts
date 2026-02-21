@@ -3,13 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 const BASE_URL = "https://ctsyftybpwjrscsq.tunnel.elice.io/api";
 
 async function handler(req: NextRequest) {
-  // Extract the path after /api/proxy/
   const url = new URL(req.url);
   const path = url.pathname.replace("/api/proxy", "");
   const search = url.search;
   const targetUrl = `${BASE_URL}${path}${search}`;
 
-  // Forward headers (except host)
+  // Forward headers
   const headers: Record<string, string> = {};
   const skipReqHeaders = new Set(["host", "connection", "accept-encoding"]);
   req.headers.forEach((value, key) => {
@@ -19,7 +18,7 @@ async function handler(req: NextRequest) {
   });
 
   // Get body for non-GET requests
-  let body: BodyInit | null = null;
+  let body: ArrayBuffer | string | null = null;
   if (req.method !== "GET" && req.method !== "HEAD") {
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
@@ -30,11 +29,27 @@ async function handler(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(targetUrl, {
+    // Use redirect: "manual" to handle redirects ourselves and preserve auth headers
+    let response = await fetch(targetUrl, {
       method: req.method,
       headers,
       body,
+      redirect: "manual",
     });
+
+    // Follow redirects manually to preserve Authorization header
+    if (response.status === 307 || response.status === 308 || response.status === 301 || response.status === 302) {
+      const location = response.headers.get("location");
+      if (location) {
+        const redirectUrl = new URL(location, targetUrl).toString();
+        response = await fetch(redirectUrl, {
+          method: req.method,
+          headers,
+          body,
+          redirect: "manual",
+        });
+      }
+    }
 
     const responseHeaders = new Headers();
     const skipHeaders = new Set(["transfer-encoding", "content-encoding", "content-length"]);
@@ -44,24 +59,14 @@ async function handler(req: NextRequest) {
       }
     });
 
-    // Handle 204 No Content
     if (response.status === 204) {
-      return new NextResponse(null, {
-        status: 204,
-        headers: responseHeaders,
-      });
+      return new NextResponse(null, { status: 204, headers: responseHeaders });
     }
 
     const data = await response.arrayBuffer();
-    return new NextResponse(data, {
-      status: response.status,
-      headers: responseHeaders,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      { detail: "프록시 연결에 실패했습니다." },
-      { status: 502 }
-    );
+    return new NextResponse(data, { status: response.status, headers: responseHeaders });
+  } catch {
+    return NextResponse.json({ detail: "프록시 연결에 실패했습니다." }, { status: 502 });
   }
 }
 
