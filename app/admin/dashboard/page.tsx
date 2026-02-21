@@ -20,11 +20,26 @@ function DashboardContent() {
     try {
       setLoading(true);
       const myGroups: GroupItem[] = await apiFetch("/groups/me");
-      setGroups(myGroups.filter(g => g.team_id === Number(teamId)));
+      const teamGroups = myGroups.filter(g => g.team_id === Number(teamId));
+      setGroups(teamGroups);
 
-      const myTeams = await apiFetch("/teams/me");
-      const currentTeam = myTeams.find((t: any) => t.id === Number(teamId));
-      if (currentTeam?.members) setMembers(currentTeam.members);
+      // Fetch members from each group
+      const allMembers: TeamMember[] = [];
+      const seenUserIds = new Set<number>();
+      for (const group of teamGroups) {
+        try {
+          const groupMembers: TeamMember[] = await apiFetch(`/groups/${group.id}/members`);
+          for (const m of groupMembers) {
+            if (!seenUserIds.has(m.user_id)) {
+              seenUserIds.add(m.user_id);
+              allMembers.push(m);
+            }
+          }
+        } catch {
+          // skip if group members fetch fails
+        }
+      }
+      setMembers(allMembers);
     } catch {
       alert("데이터를 불러오는데 실패했습니다.");
     } finally {
