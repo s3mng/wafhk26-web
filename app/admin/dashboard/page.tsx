@@ -194,7 +194,7 @@ function DashboardContent() {
                         <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">관리자</span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">{member.user_hakbun}학번 • {member.user_student_id}</p>
+                    <p className="text-sm text-gray-500">{member.user_hakbun}학번</p>
                   </div>
                 </div>
               ))}
