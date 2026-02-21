@@ -11,8 +11,9 @@ async function handler(req: NextRequest) {
 
   // Forward headers (except host)
   const headers: Record<string, string> = {};
+  const skipReqHeaders = new Set(["host", "connection", "accept-encoding"]);
   req.headers.forEach((value, key) => {
-    if (key !== "host" && key !== "connection") {
+    if (!skipReqHeaders.has(key)) {
       headers[key] = value;
     }
   });
@@ -36,8 +37,9 @@ async function handler(req: NextRequest) {
     });
 
     const responseHeaders = new Headers();
+    const skipHeaders = new Set(["transfer-encoding", "content-encoding", "content-length"]);
     response.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== "transfer-encoding") {
+      if (!skipHeaders.has(key.toLowerCase())) {
         responseHeaders.set(key, value);
       }
     });
