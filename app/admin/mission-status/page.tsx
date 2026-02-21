@@ -1,8 +1,109 @@
 "use client";
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/date";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+function ModelViewer({ url }: { url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loadingModel, setLoadingModel] = useState(true);
+  const [modelError, setModelError] = useState("");
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const width = el.clientWidth;
+    const height = 300;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf3f4f6);
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(0, 1.5, 3);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    el.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 2;
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+
+    loader.load(
+      `/api/proxy${url}`,
+      (gltf) => {
+        const model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        model.position.sub(center);
+        camera.position.set(0, maxDim * 0.5, maxDim * 1.8);
+        controls.target.set(0, 0, 0);
+        controls.update();
+        scene.add(model);
+        setLoadingModel(false);
+      },
+      undefined,
+      () => { setModelError("3D 모델을 불러올 수 없습니다."); setLoadingModel(false); }
+    );
+
+    let animId: number;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      controls.dispose();
+      renderer.dispose();
+      el.removeChild(renderer.domElement);
+      dracoLoader.dispose();
+    };
+  }, [url]);
+
+  return (
+    <div className="mt-4 rounded-xl overflow-hidden border border-gray-200 relative" style={{ height: 300 }}>
+      {loadingModel && !modelError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <svg className="animate-spin h-8 w-8 text-purple-500" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#a855f7" strokeWidth="4"/>
+            <path className="opacity-75" fill="#a855f7" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+        </div>
+      )}
+      {modelError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <p className="text-sm text-red-500">{modelError}</p>
+        </div>
+      )}
+      <div ref={containerRef} className="w-full h-full" />
+    </div>
+  );
+}
 
 function MissionStatusContent() {
   const params = useSearchParams();
@@ -14,6 +115,7 @@ function MissionStatusContent() {
   const createdAt = params.get("createdAt") || "";
 
   const [statuses, setStatuses] = useState<any[]>([]);
+  const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,10 +124,12 @@ function MissionStatusContent() {
     try {
       setLoading(true);
       setError("");
-      const [groupsData, leaderboard] = await Promise.all([
+      const [groupsData, leaderboard, missionData] = await Promise.all([
         apiFetch(`/missions/${missionId}/groups`),
         apiFetch(`/leaderboard/${teamId}`),
+        apiFetch(`/missions/${missionId}`),
       ]);
+      if (missionData.model_url) setModelUrl(missionData.model_url);
       const joined = groupsData.map((mg: any) => {
         const lb = leaderboard.find((l: any) => l.group_id === mg.group_id);
         return { ...mg, group_name: lb ? lb.group_name : `조 #${mg.group_id}` };
@@ -91,6 +195,8 @@ function MissionStatusContent() {
                 <p className="text-xs text-gray-500 mt-1">미완료/진행중</p>
               </div>
             </div>
+
+            {modelUrl && <ModelViewer url={modelUrl} />}
           </div>
 
           <div className="px-5 py-3 bg-gray-50">
